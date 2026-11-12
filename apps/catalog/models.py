@@ -1,6 +1,9 @@
 from django.core.validators import MinValueValidator
 from django.db import models
 from decimal import Decimal
+
+from django.urls import reverse
+
 from apps.core.models import TimeStampedModel
 
 
@@ -26,9 +29,14 @@ class ProductQuerySet(models.QuerySet):
     def search(self, term: str):
         return self.filter(title__icontains=term) if term else self
 
+    def in_category(self, slug: str):
+        return self.filter(category__slug=slug)
 
+    def for_listing(self):
+        return self.select_related('category').only('id','title','slug','price',
+                                             'stock','category__name','category__slug')
 class Product(TimeStampedModel):
-    category: models.ForeignKey(Category, on_delete=models.PROTECT, related_name='products')
+    category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='products')
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=120, unique=True, allow_unicode=True)
     description = models.TextField(blank=True)
@@ -42,4 +50,19 @@ class Product(TimeStampedModel):
         ordering = ['-created_at', 'title']
         verbose_name = 'محصول'
         verbose_name_plural = 'محصولات'
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(price__gte=0), name='product_price_non_negative'
+            ),
+        ]
+
+    def __str__(self):
+            return self.title
+
+    def get_absolute_url(self):
+            return reverse('catalog: product-detail', kwargs={'slug':self.slug})
+
+    @property
+    def is_available(self):
+        return self.is_active and self.stock > 0
 
