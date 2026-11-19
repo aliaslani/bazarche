@@ -1,11 +1,5 @@
-#Thin View
-from typing import Any
-
-from django.core.paginator import _SupportsPagination
-from django.db.models import QuerySet
-from django.shortcuts import render
 from django.views.generic import DetailView, ListView
-from django.views.generic.list import _M
+
 
 from apps.catalog.selectors import product_get, product_list, category_list
 
